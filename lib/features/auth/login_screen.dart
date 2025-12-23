@@ -23,6 +23,29 @@ class _LoginScreenState extends State<LoginScreen> {
   final storage = FlutterSecureStorage();
   bool isLoading = false;
 
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Reset error message when user types
+    emailController.addListener(() {
+      if (errorMessage != null) setState(() => errorMessage = null);
+    });
+
+    passwordController.addListener(() {
+      if (errorMessage != null) setState(() => errorMessage = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   void login() async {
     final email = emailController.text;
     final password = passwordController.text;
@@ -48,38 +71,39 @@ class _LoginScreenState extends State<LoginScreen> {
       print("Sending API request: $data");
 
       final response = await ApiService.post(ApiConstants.login, data);
+      final status = response['status'];
+      final body = response['body'];
 
-      print("API Response: $response");
-
-      // Example: navigate if login successful
-      if (response['token'] != null) {
-        print("Login successful!");
-
-        await storage.write(key: 'token', value: response['token']);
+      if (status == 200 && body['token'] != null) {
+        // Success
+        await storage.write(key: 'token', value: body['token']);
 
         // Fetch user info
         try {
           final userData = await UserService.fetchUser();
-          // Save user info locally if you want
           await storage.write(key: 'userId', value: userData['id'].toString());
           await storage.write(key: 'name', value: userData['name']);
-          print("User info saved: $userData");
         } catch (e) {
           print("Failed to fetch user info: $e");
         }
 
         Navigator.pushReplacementNamed(context, '/home');
+      } else if (status == 401) {
+        // Wrong credentials
+        setState(() {
+          errorMessage = "Wrong email or password";
+        });
       } else {
-        print("Login failed: ${response['user']}");
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Login failed")));
+        // Other errors
+        setState(() {
+          errorMessage = "Login failed. Please try again.";
+        });
       }
     } catch (e) {
       print("Login error: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      setState(() {
+        errorMessage = "An unexpected error occurred";
+      });
     } finally {
       setState(() {
         isLoading = false;
@@ -154,7 +178,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ElevatedButton(
-                    onPressed: login,
+                    onPressed: isLoading
+                        ? null
+                        : login, // disable button while loading
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -163,17 +189,35 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       side: const BorderSide(color: AppColors.onPrimary),
                     ),
-                    child: const Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white, // adjust text color for contrast
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text(
+                            'Login',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ),
+
+              if (errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12.0),
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red, fontSize: 14),
+                  ),
+                ),
 
               const SizedBox(height: 20),
 

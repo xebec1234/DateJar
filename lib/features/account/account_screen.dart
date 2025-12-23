@@ -3,13 +3,22 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/constant/api_constant.dart';
 import '../../core/services/api_service.dart';
 
-class AccountScreen extends StatelessWidget {
+class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
 
-  // Secure storage instance
-  final storage = const FlutterSecureStorage();
+  @override
+  _AccountScreenState createState() => _AccountScreenState();
+}
 
-  void logout(BuildContext context) async {
+class _AccountScreenState extends State<AccountScreen> {
+  final storage = const FlutterSecureStorage();
+  bool isLoading = false;
+
+  void logout() async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       final token = await storage.read(key: 'token');
 
@@ -17,9 +26,9 @@ class AccountScreen extends StatelessWidget {
         // Call backend logout
         await ApiService.post(
           ApiConstants.logout,
-          {}, // no body needed
+          {},
+          token: token, // include token in headers
         );
-
         print("Backend logout successful");
       }
 
@@ -28,31 +37,54 @@ class AccountScreen extends StatelessWidget {
       print("Token deleted, user logged out");
 
       // Navigate back to login screen
-      Navigator.pushReplacementNamed(context, '/login');
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     } catch (e) {
       print("Error logging out: $e");
 
-      // Optional: still delete token locally if backend fails
+      // Still delete token locally if backend fails
       await storage.delete(key: 'token');
-      Navigator.pushReplacementNamed(context, '/login');
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: ElevatedButton(
-        onPressed: () => logout(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 160,
+        height: 50,
+        child: ElevatedButton(
+          onPressed: isLoading ? null : logout,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-        ),
-        child: const Text(
-          'Logout',
-          style: TextStyle(fontSize: 18, color: Colors.white),
+          child: isLoading
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              : const Text(
+                  'Logout',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
         ),
       ),
     );

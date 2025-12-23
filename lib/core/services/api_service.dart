@@ -19,11 +19,12 @@ class ApiService {
       body: jsonEncode(data),
     );
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('API Error: ${response.statusCode}');
-    }
+    Map<String, dynamic> body = {};
+    try {
+      body = jsonDecode(response.body);
+    } catch (_) {}
+
+    return {"status": response.statusCode, "body": body};
   }
 
   static Future<Map<String, dynamic>> get(
