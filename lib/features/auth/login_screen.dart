@@ -1,3 +1,4 @@
+import 'package:datejar_frontend/core/services/user_service.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -53,10 +54,19 @@ class _LoginScreenState extends State<LoginScreen> {
       // Example: navigate if login successful
       if (response['token'] != null) {
         print("Login successful!");
-        print("Token: ${response['token']}");
-        
+
         await storage.write(key: 'token', value: response['token']);
-        print("Token saved successfully");
+
+        // Fetch user info
+        try {
+          final userData = await UserService.fetchUser();
+          // Save user info locally if you want
+          await storage.write(key: 'userId', value: userData['id'].toString());
+          await storage.write(key: 'name', value: userData['name']);
+          print("User info saved: $userData");
+        } catch (e) {
+          print("Failed to fetch user info: $e");
+        }
 
         Navigator.pushReplacementNamed(context, '/home');
       } else {

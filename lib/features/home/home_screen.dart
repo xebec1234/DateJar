@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/tulips_widget.dart';
+import 'partner_dialog.dart';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final storage = FlutterSecureStorage();
+
     final String today = DateFormat('EEEE, MMM d').format(DateTime.now());
 
     // 🔜 How this becomes dynamic later
@@ -122,8 +127,15 @@ class HomeScreen extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.settings),
                   color: AppColors.primary,
-                  onPressed: () {
-                    print('Settings button pressed');
+                  onPressed: () async {
+                    final userId = await storage.read(key: 'userId') ?? '';
+                    final name = await storage.read(key: 'name') ?? '';
+
+                    showDialog(
+                      context: context,
+                      builder: (context) =>
+                          PartnerDialog(userId: userId, name: name),
+                    );
                   },
                 ),
               ],
