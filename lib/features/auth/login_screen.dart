@@ -21,7 +21,14 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 100),
               // App Logo
               Image.asset('assets/images/datejar-logo.png', width: 120),
-              const SizedBox(height: 50),
+              const SizedBox(height: 15),
+
+              const Text(
+                'Login',
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 30),
 
               // Username field
               TextField(
@@ -114,10 +121,7 @@ class LoginScreen extends StatelessWidget {
                     ),
                     child: OutlinedButton.icon(
                       onPressed: () {},
-                      icon: Image.asset(
-                        'assets/images/google.png',
-                        width: 24,
-                      ),
+                      icon: Image.asset('assets/images/google.png', width: 24),
                       label: const Text(
                         'Continue with Google',
                         style: TextStyle(color: Colors.black, fontSize: 16),
@@ -141,10 +145,10 @@ class LoginScreen extends StatelessWidget {
               GestureDetector(
                 onTap: () {
                   // TODO: Navigate to register screen
-                   Navigator.pushReplacementNamed(context, '/home');
+                  Navigator.pushReplacementNamed(context, '/register');
                 },
                 child: const Text(
-                  'skip',
+                  "Don't have an account? Register",
                   style: TextStyle(
                     color: Colors.blueAccent,
                     decoration: TextDecoration.underline,

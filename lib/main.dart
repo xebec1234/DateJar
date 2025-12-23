@@ -3,6 +3,7 @@ import 'features/splash/splash_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/home/main_home.dart';
 import 'package:flutter/services.dart';
+import 'features/auth/register_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const MainHomeScreen(),
+        '/register': (context) => const RegisterScreen(),
       },
     );
   }
