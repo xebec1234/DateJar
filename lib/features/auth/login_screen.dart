@@ -2,8 +2,80 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 
-class LoginScreen extends StatelessWidget {
+//api service
+import '../../core/services/api_service.dart';
+import '../../core/constant/api_constant.dart';
+
+//storage
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final storage = FlutterSecureStorage();
+  bool isLoading = false;
+
+  void login() async {
+    final email = emailController.text;
+    final password = passwordController.text;
+
+    print("Login button pressed");
+    print("Email: $email");
+    print("Password: $password");
+
+    if (email.isEmpty || password.isEmpty) {
+      print("Error: Email or password is empty");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Email and password cannot be empty")),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final data = {"email": email, "password": password};
+      print("Sending API request: $data");
+
+      final response = await ApiService.post(ApiConstants.login, data);
+
+      print("API Response: $response");
+
+      // Example: navigate if login successful
+      if (response['token'] != null) {
+        print("Login successful!");
+        print("Token: ${response['token']}");
+        
+        await storage.write(key: 'token', value: response['token']);
+        print("Token saved successfully");
+
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        print("Login failed: ${response['user']}");
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Login failed")));
+      }
+    } catch (e) {
+      print("Login error: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,8 +104,9 @@ class LoginScreen extends StatelessWidget {
 
               // Username field
               TextField(
+                controller: emailController,
                 decoration: InputDecoration(
-                  hintText: 'Username',
+                  hintText: 'Email',
                   filled: true,
                   fillColor: Colors.white,
                   prefixIcon: const Icon(Icons.person),
@@ -47,6 +120,7 @@ class LoginScreen extends StatelessWidget {
 
               // Password field
               TextField(
+                controller: passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Password',
@@ -70,9 +144,7 @@ class LoginScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: Add login logic
-                    },
+                    onPressed: login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,

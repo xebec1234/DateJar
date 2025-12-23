@@ -37,6 +37,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   intl: ^0.18.1
 
+  # For making network requests
+  http: ^1.1.0
+  flutter_secure_storage: ^8.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
