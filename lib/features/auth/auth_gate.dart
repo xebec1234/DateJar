@@ -32,6 +32,6 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     // Simple splash while checking
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const Scaffold();
   }
 }

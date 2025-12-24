@@ -10,7 +10,6 @@ class GoogleAuthService {
 
   static Future<String?> signInAndGetIdToken() async {
     try {
-      await _googleSignIn.disconnect();
       await _googleSignIn.signOut(); // reset cached session
       final account = await _googleSignIn.signIn(); // force picker
       if (account == null) return null;

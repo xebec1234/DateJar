@@ -30,10 +30,10 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
 
       // Start from splash screen
-      initialRoute: '/',
+      initialRoute: '/splash',
 
       routes: {
-        '/': (context) => const SplashScreen(),
+        '/splash': (context) => const SplashScreen(),
         '/auth': (context) => const AuthGate(),
         '/login': (context) => LoginScreen(),
         '/home': (context) => const MainHomeScreen(),
