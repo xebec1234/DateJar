@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 //api service
 import '../../core/services/api_service.dart';
 import '../../core/constant/api_constant.dart';
+import '../../core/services/google_auth_service.dart';
 
 //storage
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -104,6 +105,55 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  // GOOGLE LOGIN HANDLER
+  Future<void> _loginWithGoogle() async {
+    setState(() => isLoading = true);
+
+    try {
+      // Get idToken from Google
+      final idToken = await GoogleAuthService.signInAndGetIdToken();
+      if (idToken == null) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign-in cancelled')),
+        );
+        return;
+      }
+
+      // Call backend
+      final response = await ApiService.post(ApiConstants.googleLogin, {
+        'id_token': idToken,
+      });
+
+      // Check backend response
+      if (response['body']['token'] == null) {
+        throw Exception('No token returned from backend');
+      }
+
+      // Save token
+      await storage.write(key: 'token', value: response['body']['token']);
+
+      // Fetch user info from backend
+      try {
+        final userData = await UserService.fetchUser();
+        await storage.write(key: 'userId', value: userData['id'].toString());
+        await storage.write(key: 'name', value: userData['name']);
+      } catch (e) {
+        print("Failed to fetch user info: $e");
+      }
+
+      // Navigate to home
+      Navigator.pushReplacementNamed(context, '/home');
+    } catch (e) {
+      print('Google login failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Google login failed. Please try again.')),
+      );
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
@@ -242,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: _loginWithGoogle,
                       icon: Image.asset('assets/images/google.png', width: 24),
                       label: const Text(
                         'Continue with Google',
