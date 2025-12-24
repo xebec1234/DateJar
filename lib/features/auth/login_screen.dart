@@ -50,10 +50,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = emailController.text;
     final password = passwordController.text;
 
-    print("Login button pressed");
-    print("Email: $email");
-    print("Password: $password");
-
     if (email.isEmpty || password.isEmpty) {
       print("Error: Email or password is empty");
       ScaffoldMessenger.of(context).showSnackBar(

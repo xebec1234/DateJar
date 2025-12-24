@@ -8,7 +8,7 @@ import '../../core/widgets/gradient_tab.dart';
 /// Returns the list of pages for HomeScreen
 List<Widget> getNavigationPages() {
   return [
-    GradientTab(child: const HomeScreen()),  // full home content with top bar
+    GradientTab(child: const HomeScreen()),
     GradientTab(child: const CalendarScreen()),
     GradientTab(child: const ChatScreen()),
     GradientTab(child: const AccountScreen()),

@@ -15,12 +15,15 @@ class _SplashScreenState extends State<SplashScreen> {
     _goNext();
   }
 
-  void _goNext() async {
-    await Future.delayed(const Duration(seconds: 5));
+  Future<void> _goNext() async {
+    await Future.delayed(const Duration(seconds: 3));
 
-    Navigator.pushReplacementNamed(context, '/login');
+    if (!mounted) return;
+
+    Navigator.pushReplacementNamed(context, '/auth');
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
