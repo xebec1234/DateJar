@@ -1,9 +1,163 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 
-class RegisterScreen extends StatelessWidget {
+import '../../core/services/api_service.dart';
+import '../../core/constant/api_constant.dart';
+import '../../core/services/google_auth_service.dart';
+
+import '../../core/services/user_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final emailController = TextEditingController();
+  final usernameController = TextEditingController();
+  final passwordController = TextEditingController();
+  final rePasswordController = TextEditingController();
+  final storage = const FlutterSecureStorage();
+
+  bool isLoading = false;
+  String? errorMessage;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    usernameController.dispose();
+    passwordController.dispose();
+    rePasswordController.dispose();
+    super.dispose();
+  }
+
+  void register() async {
+    final email = emailController.text.trim();
+    final username = usernameController.text.trim();
+    final password = passwordController.text.trim();
+    final rePassword = rePasswordController.text.trim();
+
+    if (email.isEmpty ||
+        username.isEmpty ||
+        password.isEmpty ||
+        rePassword.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("All fields are required")));
+      return;
+    }
+
+    if (password != rePassword) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final data = {"name": username, "email": email, "password": password};
+
+      final response = await ApiService.post(ApiConstants.register, data);
+      final status = response['status'];
+      final body = response['body'];
+
+      if (status == 201 && body['token'] != null) {
+        // Save token
+        await storage.write(key: 'token', value: body['token']);
+
+        // Save user info
+        await storage.write(
+          key: 'userId',
+          value: body['user']['id'].toString(),
+        );
+        await storage.write(key: 'name', value: body['user']['name']);
+
+        // Navigate to home
+        Navigator.pushReplacementNamed(context, '/home');
+      } else if (status == 422) {
+        // Validation errors from Laravel
+        final errors = body['errors'] ?? {};
+        String errorText = errors.values.map((e) => e.join(', ')).join('\n');
+        setState(() {
+          errorMessage = errorText;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorText)));
+      } else {
+        setState(() {
+          errorMessage = "Registration failed. Please try again.";
+        });
+      }
+    } catch (e) {
+      print("Register error: $e");
+      setState(() {
+        errorMessage = "An unexpected error occurred";
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  // GOOGLE LOGIN HANDLER
+  Future<void> _loginWithGoogle() async {
+    setState(() => isLoading = true);
+
+    try {
+      // Get idToken from Google
+      final idToken = await GoogleAuthService.signInAndGetIdToken();
+      if (idToken == null) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign-in cancelled')),
+        );
+        return;
+      }
+
+      // Call backend
+      final response = await ApiService.post(ApiConstants.googleLogin, {
+        'id_token': idToken,
+      });
+
+      // Check backend response
+      if (response['body']['token'] == null) {
+        throw Exception('No token returned from backend');
+      }
+
+      // Save token
+      await storage.write(key: 'token', value: response['body']['token']);
+
+      // Fetch user info from backend
+      try {
+        final userData = await UserService.fetchUser();
+        await storage.write(key: 'userId', value: userData['id'].toString());
+        await storage.write(key: 'name', value: userData['name']);
+      } catch (e) {
+        print("Failed to fetch user info: $e");
+      }
+
+      // Navigate to home
+      Navigator.pushReplacementNamed(context, '/home');
+    } catch (e) {
+      print('Google login failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Google login failed. Please try again.')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,17 +173,13 @@ class RegisterScreen extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 100),
-
-              // Register Title
               const Text(
                 'Register',
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
-
               const SizedBox(height: 50),
-
-              // Email field
               TextField(
+                controller: emailController,
                 decoration: InputDecoration(
                   hintText: 'Email',
                   filled: true,
@@ -42,9 +192,8 @@ class RegisterScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Username field
               TextField(
+                controller: usernameController,
                 decoration: InputDecoration(
                   hintText: 'Username',
                   filled: true,
@@ -57,9 +206,8 @@ class RegisterScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Password field
               TextField(
+                controller: passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Password',
@@ -73,9 +221,8 @@ class RegisterScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 30),
-
-              // re-type password field
               TextField(
+                controller: rePasswordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Re-type password',
@@ -89,7 +236,6 @@ class RegisterScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 30),
-
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -99,9 +245,7 @@ class RegisterScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: Add login logic
-                    },
+                    onPressed: isLoading ? null : register,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -110,21 +254,20 @@ class RegisterScreen extends StatelessWidget {
                       ),
                       side: const BorderSide(color: AppColors.onPrimary),
                     ),
-                    child: const Text(
-                      'Register',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white, // adjust text color for contrast
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Register',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              // OR divider
               Row(
                 children: [
                   Expanded(child: Divider(color: Colors.grey[400])),
@@ -135,12 +278,9 @@ class RegisterScreen extends StatelessWidget {
                   Expanded(child: Divider(color: Colors.grey[400])),
                 ],
               ),
-
               const SizedBox(height: 20),
-
-              // Google Sign-in button
               FractionallySizedBox(
-                widthFactor: 0.8, // 80% of parent width
+                widthFactor: 0.8,
                 child: SizedBox(
                   height: 50,
                   child: Container(
@@ -149,11 +289,14 @@ class RegisterScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: isLoading ? null : _loginWithGoogle,
                       icon: Image.asset('assets/images/google.png', width: 24),
-                      label: const Text(
+                      label: Text(
                         'Register with Google',
-                        style: TextStyle(color: Colors.black, fontSize: 16),
+                        style: TextStyle(
+                          color: isLoading ? Colors.grey : Colors.black,
+                          fontSize: 16,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.transparent,
@@ -167,13 +310,9 @@ class RegisterScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 30),
-
-              // Register text
               GestureDetector(
                 onTap: () {
-                  // TODO: Navigate to register screen
                   Navigator.pushReplacementNamed(context, '/login');
                 },
                 child: const Text(
@@ -185,7 +324,6 @@ class RegisterScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 50),
             ],
           ),

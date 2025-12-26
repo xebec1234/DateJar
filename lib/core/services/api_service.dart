@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../constant/api_constant.dart';
 
 class ApiService {
   static Future<Map<String, dynamic>> post(

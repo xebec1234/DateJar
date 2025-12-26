@@ -292,11 +292,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: OutlinedButton.icon(
-                      onPressed: _loginWithGoogle,
+                      onPressed: isLoading ? null : _loginWithGoogle,
                       icon: Image.asset('assets/images/google.png', width: 24),
-                      label: const Text(
+                      label: Text(
                         'Continue with Google',
-                        style: TextStyle(color: Colors.black, fontSize: 16),
+                        style: TextStyle(
+                          color: isLoading ? Colors.grey : Colors.black,
+                          fontSize: 16,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.transparent,
