@@ -4,15 +4,51 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/tulips_widget.dart';
 import 'partner_dialog.dart';
 
+import '../../core/constant/api_constant.dart';
+import '../../core/services/api_service.dart';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final storage = FlutterSecureStorage();
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
+class _HomeScreenState extends State<HomeScreen> {
+  final storage = const FlutterSecureStorage();
+  Map<String, dynamic>? _partner; // partner info will be stored here
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPartner(); // fetch partner on screen load
+  }
+
+  Future<void> _fetchPartner() async {
+    try {
+      final token = await storage.read(key: 'token');
+      final data = await ApiService.get(
+        "${ApiConstants.baseUrl}/partners",
+        token: token,
+      );
+
+      print("Fetched partner data: $data");
+
+      setState(() {
+        _partner = data;
+      });
+    } catch (e) {
+      print("No partner found or error: $e");
+      setState(() {
+        _partner = null;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final String today = DateFormat('EEEE, MMM d').format(DateTime.now());
 
     // 🔜 How this becomes dynamic later
@@ -133,8 +169,13 @@ class HomeScreen extends StatelessWidget {
 
                     showDialog(
                       context: context,
-                      builder: (context) =>
-                          PartnerDialog(userId: userId, name: name),
+                      builder: (context) => PartnerDialog(
+                        userId: userId,
+                        name: name,
+                        hasPartner: _partner != null,
+                        partnerName:
+                            _partner?['partner_name'], // pass name directly
+                      ),
                     );
                   },
                 ),
