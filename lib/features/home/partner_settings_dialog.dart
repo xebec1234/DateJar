@@ -102,7 +102,11 @@ class _PartnerSettingsDialogState extends State<PartnerSettingsDialog> {
           children: [
             const Text(
               "Partner Settings",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryLight,
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -115,7 +119,16 @@ class _PartnerSettingsDialogState extends State<PartnerSettingsDialog> {
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.9),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.transparent),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.transparent),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.primary, width: 2),
                 ),
               ),
             ),
@@ -128,6 +141,7 @@ class _PartnerSettingsDialogState extends State<PartnerSettingsDialog> {
                 onPressed: _saveCallsign,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

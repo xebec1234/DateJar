@@ -29,20 +29,16 @@ class _AccountScreenState extends State<AccountScreen> {
           {},
           token: token, // include token in headers
         );
-        print("Backend logout successful");
       }
 
       // Delete token locally regardless
       await storage.delete(key: 'token');
-      print("Token deleted, user logged out");
 
       // Navigate back to login screen
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }
     } catch (e) {
-      print("Error logging out: $e");
-
       // Still delete token locally if backend fails
       await storage.delete(key: 'token');
       if (mounted) {

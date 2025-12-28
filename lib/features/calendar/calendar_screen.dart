@@ -52,9 +52,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       if (_partner != null && _partner!['id'] != null) {
         await _fetchGoals(token);
       }
-
-      print("Fetched user calendar: $_user");
-      print("Fetched partner calendar: $_partner");
     } catch (e) {
       debugPrint("Error fetching user/partner: $e");
     }
@@ -127,11 +124,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
+  bool _hasActiveGoal() {
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+
+    return _goals.any((g) {
+      final date = g['target_date'] as DateTime;
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      return dateOnly.isAfter(todayOnly);
+    });
+  }
+
+  bool _isOnOrBeforeToday(DateTime date) {
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+    final dateOnly = DateTime(date.year, date.month, date.day);
+
+    return dateOnly.isBefore(todayOnly) || dateOnly.isAtSameMomentAs(todayOnly);
   }
 
   void _openGoalViewDialog(Map<String, dynamic> goal) {
@@ -160,6 +169,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  void _showActiveGoalWarning() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Active Goal Exists"),
+        content: const Text(
+          "You still have an active goal.\n\n"
+          "Please complete or reach your current goal before setting a new one.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -181,6 +210,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
               },
               onDaySelected: (selectedDay, focusedDay) {
                 setState(() => _focusedDate = focusedDay);
+
+                if (_hasActiveGoal()) {
+                  _showActiveGoalWarning();
+                  return;
+                }
+
                 _onDaySelected(selectedDay);
               },
               calendarStyle: CalendarStyle(
@@ -203,6 +238,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 defaultTextStyle: const TextStyle(color: AppColors.onPrimary),
                 weekendTextStyle: const TextStyle(color: AppColors.onPrimary),
               ),
+              daysOfWeekStyle: const DaysOfWeekStyle(
+                weekdayStyle: TextStyle(
+                  color: AppColors.onPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+                weekendStyle: TextStyle(
+                  color: AppColors.onPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               headerStyle: const HeaderStyle(
                 titleCentered: true,
                 formatButtonVisible: false,
@@ -210,6 +255,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   color: AppColors.onPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                ),
+                leftChevronIcon: const Icon(
+                  Icons.chevron_left,
+                  color: AppColors.onPrimary,
+                ),
+                rightChevronIcon: const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.onPrimary,
                 ),
               ),
             ),
@@ -221,7 +274,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               itemBuilder: (context, index) {
                 final goal = _goals[index];
                 final date = goal['target_date'] as DateTime;
-                final isTodayGoal = _isToday(date);
+                final isViewableGoal = _isOnOrBeforeToday(date);
 
                 return Container(
                   width: double.infinity,
@@ -244,7 +297,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                     ],
                   ),
-                  child: isTodayGoal
+                  child: isViewableGoal
                       ? Row(
                           children: [
                             Expanded(
@@ -256,7 +309,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     DateFormat.yMMMd().format(date),
                                     style: const TextStyle(
                                       color: AppColors.onPrimary,
-                                      fontSize: 13,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
@@ -268,7 +322,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 "₱${goal['amount']}",
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                  color: Colors.black,
+                                  color: AppColors.onPrimary,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -327,7 +381,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             Text(
                               "₱${goal['amount']}",
                               style: const TextStyle(
-                                color: Colors.black,
+                                color: AppColors.onPrimary,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),

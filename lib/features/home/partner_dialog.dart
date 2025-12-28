@@ -44,7 +44,6 @@ class _PartnerDialogState extends State<PartnerDialog> {
   bool _isSearching = false;
 
   void _searchUser() async {
-    print('button clicked');
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
@@ -56,10 +55,8 @@ class _PartnerDialogState extends State<PartnerDialog> {
     try {
       final token = await storage.read(key: 'token');
       final endpoint = "${ApiConstants.partners}?user_id=$query";
-      print("Calling API: $endpoint");
 
       final data = await ApiService.get(endpoint, token: token);
-      print("API response: $data");
 
       setState(() {
         _searchedUser = {
@@ -69,7 +66,6 @@ class _PartnerDialogState extends State<PartnerDialog> {
         };
       });
     } catch (e) {
-      print("Error: $e"); // <-- add this
       setState(() {
         _searchedUser = null;
       });
@@ -130,7 +126,11 @@ class _PartnerDialogState extends State<PartnerDialog> {
           children: [
             const Text(
               'My Partner',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryLight,
+              ),
             ),
             const SizedBox(height: 12),
             _isPartnered
