@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_colors.dart';
+import './partner_settings_dialog.dart';
 
 import '../../core/constant/api_constant.dart';
 import '../../core/services/api_service.dart';
@@ -11,6 +12,7 @@ class PartnerDialog extends StatefulWidget {
   final String userId;
   final String name;
   final bool hasPartner;
+  final Map<String, dynamic>? partner;
   final String? partnerName;
 
   const PartnerDialog({
@@ -18,6 +20,7 @@ class PartnerDialog extends StatefulWidget {
     required this.userId,
     required this.name,
     this.hasPartner = false,
+    this.partner,
     this.partnerName,
   });
 
@@ -38,10 +41,17 @@ class _PartnerDialogState extends State<PartnerDialog> {
     _isPartnered = widget.hasPartner;
   }
 
+  bool _isSearching = false;
+
   void _searchUser() async {
     print('button clicked');
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
+
+    setState(() {
+      _isSearching = true;
+      _searchedUser = null;
+    });
 
     try {
       final token = await storage.read(key: 'token');
@@ -66,13 +76,43 @@ class _PartnerDialogState extends State<PartnerDialog> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("User not found or error: $e")));
+    } finally {
+      setState(() {
+        _isSearching = false;
+      });
     }
   }
 
-  void _addPartner() {
-    setState(() {
-      _isPartnered = true;
-    });
+  Future<void> _addPartner(String partnerId, String partnerName) async {
+    try {
+      final token = await storage.read(key: 'token');
+
+      final response = await ApiService.post(ApiConstants.addPartner, {
+        "partner_id": partnerId,
+      }, token: token);
+
+      if (response['status'] == 201) {
+        setState(() {
+          _isPartnered = true;
+          _searchedUser = null;
+        });
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Partner connected ❤️")));
+
+        // Optional: close dialog after success
+        Navigator.of(context).pop(true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response['body']['message'] ?? "Error")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to add partner: $e")));
+    }
   }
 
   @override
@@ -94,7 +134,24 @@ class _PartnerDialogState extends State<PartnerDialog> {
             ),
             const SizedBox(height: 12),
             _isPartnered
-                ? _partnerInfoRow(widget.name, widget.partnerName ?? 'Partner')
+                ? _partnerInfoRow(
+                    widget.name,
+                    widget.partnerName ?? 'Partner',
+                    onPartnerTap: () async {
+                      final result = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => PartnerSettingsDialog(
+                          userId: widget.userId,
+                          partnerId: widget.partner!['id'].toString(),
+                          currentName: widget.partnerName ?? 'Partner',
+                        ),
+                      );
+
+                      if (result != null) {
+                        Navigator.of(context).pop(result);
+                      }
+                    },
+                  )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -142,7 +199,7 @@ class _PartnerDialogState extends State<PartnerDialog> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: OutlinedButton(
-                            onPressed: _searchUser,
+                            onPressed: _isSearching ? null : _searchUser,
                             style: OutlinedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
@@ -151,13 +208,24 @@ class _PartnerDialogState extends State<PartnerDialog> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
-                              'Search',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                              ),
-                            ),
+                            child: _isSearching
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor: AlwaysStoppedAnimation(
+                                        AppColors.primary,
+                                      ),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Search',
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                    ),
+                                  ),
                           ),
                         ),
                       ),
@@ -186,72 +254,111 @@ class _PartnerDialogState extends State<PartnerDialog> {
 
   Widget _buildSearchedUserRow(Map<String, String> user) {
     final hasPartner = user['hasPartner'] == 'true';
+    final isSelf = user['id'] == widget.userId;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(user['name']!),
-        hasPartner
-            ? const Text(
-                'In a relationship',
-                style: TextStyle(color: Colors.grey),
-              )
-            : TextButton.icon(
-                onPressed: _addPartner,
-                icon: const Icon(Icons.favorite, color: Colors.red),
-                label: const Text('Add'),
-              ),
+
+        if (isSelf)
+          const Text("This is you", style: TextStyle(color: Colors.grey))
+        else if (hasPartner)
+          const Text('In a relationship', style: TextStyle(color: Colors.grey))
+        else
+          TextButton.icon(
+            onPressed: () => _addPartner(user['id']!, user['name']!),
+            icon: const Icon(Icons.favorite, color: Colors.red),
+            label: const Text('Add'),
+          ),
       ],
     );
   }
 
-  Widget _partnerInfoRow(String user, String partner) {
+  Widget _partnerInfoRow(
+    String user,
+    String partner, {
+    required VoidCallback onPartnerTap,
+  }) {
+    const double boxHeight = 80;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // User box
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 30),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
+          // User box (not clickable)
+          Flexible(
+            child: SizedBox(
+              height: boxHeight,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
                   user,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 15,
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
 
-          // Heart icon
-          const Icon(Icons.favorite, color: Colors.red, size: 28),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
+          const Icon(Icons.favorite, color: Colors.red, size: 26),
+          const SizedBox(width: 10),
 
-          // Partner box
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 30),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: AppColors.primary, width: 2),
+          // ✅ Partner box (clickable)
+          Flexible(
+            child: SizedBox(
+              height: boxHeight,
+              child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  partner,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                    fontSize: 16,
+                onTap: onPartnerTap,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.primary, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  child: Stack(
+                    children: [
+                      // Edit icon (top-right)
+                      const Positioned(
+                        top: 0,
+                        right: 0,
+                        child: Icon(
+                          Icons.edit_note_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                      ),
+
+                      // Partner name (center)
+                      Center(
+                        child: Text(
+                          partner,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

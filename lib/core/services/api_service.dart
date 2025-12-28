@@ -43,4 +43,23 @@ class ApiService {
       throw Exception('API Error: ${response.statusCode}');
     }
   }
+
+  static Future<Map<String, dynamic>> delete(
+    String endpoint, {
+    String? token,
+  }) async {
+    final headers = {
+      "Content-Type": "application/json",
+      if (token != null) "Authorization": "Bearer $token",
+    };
+
+    final response = await http.delete(Uri.parse(endpoint), headers: headers);
+
+    Map<String, dynamic> body = {};
+    try {
+      body = jsonDecode(response.body);
+    } catch (_) {}
+
+    return {"status": response.statusCode, "body": body};
+  }
 }
