@@ -150,7 +150,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Navigate to home
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      print('Google login failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Google login failed. Please try again.')),
       );

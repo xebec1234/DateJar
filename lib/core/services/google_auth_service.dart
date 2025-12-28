@@ -1,5 +1,4 @@
 import 'package:google_sign_in/google_sign_in.dart';
-import 'dart:convert';
 
 class GoogleAuthService {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -15,15 +14,9 @@ class GoogleAuthService {
       if (account == null) return null;
 
       final auth = await account.authentication;
-      final idToken = auth.idToken;
-      final payload = idToken!.split('.')[1];
-      final normalized = base64Url.normalize(payload);
-      final decoded = utf8.decode(base64Url.decode(normalized));
-      print("Token payload: $decoded");
-      print("idToken: ${auth.idToken}"); // DEBUG: must show token
+  
       return auth.idToken;
     } catch (e) {
-      print("Google Sign-In Error: $e");
       return null;
     }
   }

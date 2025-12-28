@@ -52,7 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      print("Error: Email or password is empty");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Email and password cannot be empty")),
       );
@@ -65,7 +64,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final data = {"email": email, "password": password};
-      print("Sending API request: $data");
 
       final response = await ApiService.post(ApiConstants.login, data);
       final status = response['status'];
@@ -80,9 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
           final userData = await UserService.fetchUser();
           await storage.write(key: 'userId', value: userData['id'].toString());
           await storage.write(key: 'name', value: userData['name']);
-        } catch (e) {
-          print("Failed to fetch user info: $e");
-        }
+        } catch (e) {}
 
         Navigator.pushReplacementNamed(context, '/home');
       } else if (status == 401) {
@@ -97,7 +93,6 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } catch (e) {
-      print("Login error: $e");
       setState(() {
         errorMessage = "An unexpected error occurred";
       });
@@ -142,13 +137,12 @@ class _LoginScreenState extends State<LoginScreen> {
         await storage.write(key: 'userId', value: userData['id'].toString());
         await storage.write(key: 'name', value: userData['name']);
       } catch (e) {
-        print("Failed to fetch user info: $e");
+        debugPrint("Failed to fetch user info: $e");
       }
 
       // Navigate to home
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      print('Google login failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Google login failed. Please try again.')),
       );
