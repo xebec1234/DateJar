@@ -44,6 +44,26 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getList(String endpoint, {String? token}) async {
+    final headers = {
+      "Content-Type": "application/json",
+      if (token != null) "Authorization": "Bearer $token",
+    };
+
+    final response = await http.get(Uri.parse(endpoint), headers: headers);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final decoded = jsonDecode(response.body);
+      if (decoded is List) {
+        return decoded;
+      } else {
+        throw Exception("Expected List but got ${decoded.runtimeType}");
+      }
+    } else {
+      throw Exception('API Error: ${response.statusCode}');
+    }
+  }
+
   static Future<Map<String, dynamic>> delete(
     String endpoint, {
     String? token,

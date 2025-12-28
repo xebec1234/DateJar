@@ -17,4 +17,14 @@ class ApiConstants {
   static const String addPartner = "$baseUrl/partners";
   static String removePartner(String partnerRecordId) =>
       "$baseUrl/partners/$partnerRecordId";
+
+  // Goals APIs
+  static const String goals = "$baseUrl/goals";
+  static String removeGoal(String goalId) => "$baseUrl/goals/$goalId";
+
+  // Savings APIs
+  static const String savings = "$baseUrl/savings";
+  static String showSaving(String savingId) => "$baseUrl/savings/$savingId";
+  static String updateSaving(String savingId) => "$baseUrl/savings/$savingId";
+  static String removeSaving(String savingId) => "$baseUrl/savings/$savingId";
 }

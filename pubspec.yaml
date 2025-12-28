@@ -44,6 +44,9 @@ dependencies:
   #for google sign in
   google_sign_in: ^6.2.1
 
+  #calendar
+  table_calendar: ^3.0.9
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
