@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _fetchPartner(); // fetch partner on screen load
+    _fetchActiveGoal();
   }
 
   Future<void> _fetchPartner() async {
@@ -34,8 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
         "${ApiConstants.baseUrl}/partners",
         token: token,
       );
-
-      print("Fetched partner data: $data");
 
       // Load callsign from local storage
       String? savedCallsign;
@@ -50,11 +49,27 @@ class _HomeScreenState extends State<HomeScreen> {
         _partnerCallsign = savedCallsign ?? "babe";
       });
     } catch (e) {
-      print("No partner found or error: $e");
       setState(() {
         _partner = null;
         _partnerCallsign = "babe";
       });
+    }
+  }
+
+  Map<String, dynamic>? _activeGoal;
+
+  Future<void> _fetchActiveGoal() async {
+    try {
+      final token = await storage.read(key: 'token');
+      if (token == null) return;
+
+      final data = await ApiService.get(ApiConstants.active, token: token);
+      setState(() {
+        _activeGoal = data.isEmpty ? null : data;
+      });
+    } catch (e) {
+      debugPrint("No active goal");
+      setState(() => _activeGoal = null);
     }
   }
 
@@ -77,15 +92,21 @@ class _HomeScreenState extends State<HomeScreen> {
     // }
     final String jarImagePath = 'assets/images/jar1.png';
 
-    final String weeklyProgressText = "WEEKLY PROGRESS";
+    final String weeklyProgressText = _activeGoal != null ? "WEEKLY PROGRESS" : "NO ACTIVE GOALS";
     final int currentGoal = 100;
     final int totalGoal = 100;
+    final int weeklyGoalAmount = _activeGoal != null
+        ? double.parse(_activeGoal!['weekly_goal']).toInt()
+        : 0;
 
     // Today's Savings
     final int meSavings = 20; // static for now
     final int loveSavings = 0; // static for now
 
     final int totalSavings = 2000;
+    final int goalAmount = _activeGoal != null
+        ? double.parse(_activeGoal!['total_goal']).toInt()
+        : 0;
 
     Widget savingsContainer(
       String label,
@@ -231,6 +252,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: AppColors.primary.withOpacity(0.7),
                   ),
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  "Goal: ₱$weeklyGoalAmount",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.blueGrey.withOpacity(0.8),
+                  ),
+                ),
               ],
             ),
           ),
@@ -323,10 +353,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   // 💰 RIGHT: Total Savings text
                   Expanded(
                     child: Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center, // vertical centering
-                      crossAxisAlignment:
-                          CrossAxisAlignment.center, // horizontal centering
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const Text(
                           "Total Savings",
@@ -343,6 +371,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             fontSize: 34,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
+                          ),
+                        ),
+
+                        // 👇 NEW: Goal amount text
+                        const SizedBox(height: 6),
+                        Text(
+                          "Goal: ₱$goalAmount",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.blueGrey.withOpacity(0.8),
                           ),
                         ),
                       ],
