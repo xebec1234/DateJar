@@ -19,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final storage = const FlutterSecureStorage();
   Map<String, dynamic>? _partner; // partner info will be stored here
+  String _partnerCallsign = "babe";
 
   @override
   void initState() {
@@ -36,13 +37,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
       print("Fetched partner data: $data");
 
+      // Load callsign from local storage
+      String? savedCallsign;
+      if (data != null && data['id'] != null) {
+        savedCallsign = await storage.read(
+          key: 'callsign_${data['user_id1']}_${data['id']}',
+        );
+      }
+
       setState(() {
         _partner = data;
+        _partnerCallsign = savedCallsign ?? "babe";
       });
     } catch (e) {
       print("No partner found or error: $e");
       setState(() {
         _partner = null;
+        _partnerCallsign = "babe";
       });
     }
   }
@@ -167,16 +178,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     final userId = await storage.read(key: 'userId') ?? '';
                     final name = await storage.read(key: 'name') ?? '';
 
-                    showDialog(
+                    // Open PartnerDialog and wait for a result
+                    final result = await showDialog<bool>(
                       context: context,
                       builder: (context) => PartnerDialog(
                         userId: userId,
                         name: name,
                         hasPartner: _partner != null,
-                        partnerName:
-                            _partner?['partner_name'], // pass name directly
+                        partner: _partner,
+                        partnerName: _partner?['partner_name'],
                       ),
                     );
+
+                    //refresh the partner info
+                    if (result != null) {
+                      await _fetchPartner();
+                      setState(() {});
+                    }
                   },
                 ),
               ],
@@ -245,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Colors.white,
                     ),
                     savingsContainer(
-                      "Love",
+                      _partnerCallsign,
                       loveSavings,
                       Colors.white,
                       Colors.blueGrey,
