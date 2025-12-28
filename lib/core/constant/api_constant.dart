@@ -20,7 +20,7 @@ class ApiConstants {
 
   // Goals APIs
   static const String goals = "$baseUrl/goals";
-  static const String active = "$baseUrl/goals/active";
+  static const String activeGoals = "$baseUrl/goals/active";
   static String removeGoal(String goalId) => "$baseUrl/goals/$goalId";
 
   // Savings APIs
@@ -28,4 +28,5 @@ class ApiConstants {
   static String showSaving(String savingId) => "$baseUrl/savings/$savingId";
   static String updateSaving(String savingId) => "$baseUrl/savings/$savingId";
   static String removeSaving(String savingId) => "$baseUrl/savings/$savingId";
+  static const String activeSavings = "$baseUrl/savings/active";
 }

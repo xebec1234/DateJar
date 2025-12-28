@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _fetchPartner(); // fetch partner on screen load
     _fetchActiveGoal();
+    _fetchActiveSavings();
   }
 
   Future<void> _fetchPartner() async {
@@ -63,13 +64,32 @@ class _HomeScreenState extends State<HomeScreen> {
       final token = await storage.read(key: 'token');
       if (token == null) return;
 
-      final data = await ApiService.get(ApiConstants.active, token: token);
+      final data = await ApiService.get(ApiConstants.activeGoals, token: token);
       setState(() {
         _activeGoal = data.isEmpty ? null : data;
       });
     } catch (e) {
       debugPrint("No active goal");
       setState(() => _activeGoal = null);
+    }
+  }
+
+  Map<String, dynamic>? _activeSavings;
+
+  Future<void> _fetchActiveSavings() async {
+    try {
+      final token = await storage.read(key: 'token');
+
+      final data = await ApiService.get(
+        ApiConstants.activeSavings,
+        token: token,
+      );
+      setState(() {
+        _activeSavings = data.isEmpty ? null : data;
+      });
+    } catch (e) {
+      debugPrint("No active savings");
+      setState(() => _activeSavings = null);
     }
   }
 
@@ -92,18 +112,33 @@ class _HomeScreenState extends State<HomeScreen> {
     // }
     final String jarImagePath = 'assets/images/jar1.png';
 
-    final String weeklyProgressText = _activeGoal != null ? "WEEKLY PROGRESS" : "NO ACTIVE GOALS";
-    final int currentGoal = 100;
-    final int totalGoal = 100;
+    final String weeklyProgressText = _activeGoal != null
+        ? "WEEKLY PROGRESS"
+        : "NO ACTIVE GOALS";
+    final int userWeeklyGoal = _activeSavings != null
+        ? (_activeSavings!['weekly_savings_user'] as num).toInt()
+        : 0;
+
+    final int partnerWeeklyGoal = _activeSavings != null
+        ? (_activeSavings!['weekly_savings_partner'] as num).toInt()
+        : 0;
+
     final int weeklyGoalAmount = _activeGoal != null
         ? double.parse(_activeGoal!['weekly_goal']).toInt()
         : 0;
 
-    // Today's Savings
-    final int meSavings = 20; // static for now
-    final int loveSavings = 0; // static for now
+    final int meSavings = _activeSavings != null
+        ? (_activeSavings!['daily_savings_user'] as num).toInt()
+        : 0;
 
-    final int totalSavings = 2000;
+    final int loveSavings = _activeSavings != null
+        ? (_activeSavings!['daily_savings_partner'] as num).toInt()
+        : 0;
+
+    final int totalSavings = _activeSavings != null
+        ? (_activeSavings!['total_savings'] as num).toInt()
+        : 0;
+
     final int goalAmount = _activeGoal != null
         ? double.parse(_activeGoal!['total_goal']).toInt()
         : 0;
@@ -246,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // Bottom Text (goal)
                 Text(
-                  "$currentGoal / $totalGoal",
+                  "$userWeeklyGoal / $partnerWeeklyGoal",
                   style: TextStyle(
                     fontSize: 20, // smaller subtext
                     color: AppColors.primary.withOpacity(0.7),
